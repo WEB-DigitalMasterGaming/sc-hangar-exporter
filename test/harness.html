@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Paints Export Harness</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<style>
+  body { font-family: Consolas, monospace; background: #fff; color: #111; margin: 16px; }
+  .list-items { display: none; }
+  #tests div { padding: 2px 0; }
+  .PASS { color: #0a7a2f; } .FAIL { color: #c0182b; font-weight: bold; }
+  pre { background: #f4f4f4; padding: 10px; overflow: auto; }
+</style>
+</head>
+<body>
+<h2>HangarXPLOR fork - paints export harness</h2>
+
+<!-- Fixture: mimics RSI /account/pledges markup at the level the parsers read.
+     Item wrapper = the shared parent of .title/.kind/.liner/.image, exactly the
+     node GetShipList/GetSkinList reach via $('.kind:contains(X)').parent(). -->
+<ul class="list-items">
+
+  <!-- 1: ship + paint + LTI, single pledge -->
+  <li>
+    <input class="js-pledge-id" value="90000001">
+    <input class="js-pledge-name" value="Standalone Ship - 400i Pre-Order plus Penumbra Paint">
+    <input class="js-pledge-value" value="$200.00 USD">
+    <div class="date-col">Created: October 01, 2021</div>
+    <div class="item"><div class="wrap">
+      <div class="image" style="background-image:url('https://media.robertsspaceindustries.com/p/400i_penumbra.jpg')"></div>
+      <div class="title">400i - Penumbra Paint</div>
+      <div class="kind">Skin</div>
+      <div class="liner"><span>ORIG</span> Origin Jumpworks</div>
+    </div></div>
+    <div class="item"><div class="wrap">
+      <div class="image" style="background-image:url('https://media.robertsspaceindustries.com/p/400i.jpg')"></div>
+      <div class="title">400i</div>
+      <div class="kind">Ship</div>
+      <div class="liner"><span>ORIG</span> Origin Jumpworks</div>
+    </div></div>
+    <div class="item"><div class="wrap">
+      <div class="title">Lifetime Insurance</div>
+      <div class="kind">Insurance</div>
+    </div></div>
+  </li>
+
+  <!-- 2: pack with two paints, no liner on the items -->
+  <li>
+    <input class="js-pledge-id" value="90000002">
+    <input class="js-pledge-name" value="Packs - Pulse and Pulse LX plus Dominion Paints">
+    <input class="js-pledge-value" value="$100.00 USD">
+    <div class="date-col">Created: May 01, 2024</div>
+    <div class="item"><div class="wrap">
+      <div class="title">Pulse - Dominion Paint</div>
+      <div class="kind">Skin</div>
+    </div></div>
+    <div class="item"><div class="wrap">
+      <div class="title">Pulse LX - Dominion Paint</div>
+      <div class="kind">Skin</div>
+    </div></div>
+  </li>
+
+  <!-- 3: the Christmas-2019 case ParseSkin fixes - no kind at all -->
+  <li>
+    <input class="js-pledge-id" value="17000001">
+    <input class="js-pledge-name" value="Best in Show 2949">
+    <input class="js-pledge-value" value="$0.00 USD">
+    <div class="date-col">Created: December 20, 2019</div>
+    <div class="item"><div class="wrap">
+      <div class="title">Carrack Livery Upgrade</div>
+    </div></div>
+  </li>
+
+  <!-- 4: warbond pledge, item labelled Paint (not Skin) -->
+  <li>
+    <input class="js-pledge-id" value="90000004">
+    <input class="js-pledge-name" value="Standalone Ship - Sabre plus Ashcloud Paint - Warbond">
+    <input class="js-pledge-value" value="$150.00 USD">
+    <div class="date-col">Created: March 01, 2025</div>
+    <div class="item">
+      <img src="/media/sabre_ashcloud.jpg" alt="">
+      <div class="wrap">
+      <div class="title">Sabre - Ashcloud Paint</div>
+      <div class="kind">Paint</div>
+    </div></div>
+    <div class="item"><div class="wrap">
+      <div class="title">Sabre</div>
+      <div class="kind">Ship</div>
+      <div class="liner"><span>AEGS</span> Aegis Dynamics</div>
+    </div></div>
+  </li>
+
+  <!-- 5: ship only - must contribute nothing -->
+  <li>
+    <input class="js-pledge-id" value="10000001">
+    <input class="js-pledge-name" value="Standalone Ship - Gladius">
+    <input class="js-pledge-value" value="$90.00 USD">
+    <div class="date-col">Created: June 01, 2018</div>
+    <div class="item"><div class="wrap">
+      <div class="title">Gladius</div>
+      <div class="kind">Ship</div>
+      <div class="liner"><span>AEGS</span> Aegis Dynamics</div>
+    </div></div>
+  </li>
+</ul>
+
+<div id="tests"></div>
+<h3>paints.json this fixture produces</h3>
+<pre id="out"></pre>
+
+<script>window.HangarXPLOR = { _shipMatrix: [], _exportByName: {}, _selected: [], _callbacks: {} };</script>
+<script src="../src/web_resources/HangarXPLOR.ParseSkin.js"></script>
+<script src="../src/web_resources/HangarXPLOR.Download.js"></script>
+<script>
+$(function () {
+  // Same order as the real extension: ParseSkin runs per pledge first
+  // (it is what rescues the 2019 Livery Upgrade items).
+  var $items = $('.list-items > li');
+  $items.each(function () { this.filters = {}; HangarXPLOR.ParseSkin.call(this); });
+  HangarXPLOR._inventory = $items;
+
+  var skins = HangarXPLOR.GetSkinList($items);
+  document.getElementById('out').textContent = JSON.stringify(skins, null, 2);
+
+  var $t = $('#tests');
+  function ok(name, cond) { $('<div>').addClass(cond ? 'PASS' : 'FAIL').text((cond ? 'PASS' : 'FAIL') + '  ' + name).appendTo($t); }
+  function by(title) { return skins.filter(function (s) { return s.title === title; })[0]; }
+
+  ok('exactly 5 paints exported (2 singles, 2 from the pack, 1 rescued livery)', skins.length === 5);
+  ok('no ship leaked into the paint list', skins.every(function (s) { return s.entity_type === 'skin' && !/^(400i|Sabre|Gladius)$/.test(s.title); }));
+
+  var pen = by('400i - Penumbra Paint');
+  ok('Penumbra: exported', !!pen);
+  ok('Penumbra: image url captured', !!pen && /400i_penumbra\.jpg/.test(pen.image || ''));
+  ok('Penumbra: LTI inherited from pledge', !!pen && pen.lti === true);
+  ok('Penumbra: manufacturer from liner', !!pen && pen.manufacturer_code === 'ORIG');
+  ok('Penumbra: pledge facts carried', !!pen && pen.pledge_id === '90000001' && pen.pledge_cost === '$200.00 USD' && pen.pledge_date === 'October 01, 2021');
+
+  ok('pack: both Dominion paints, distinct titles', !!by('Pulse - Dominion Paint') && !!by('Pulse LX - Dominion Paint'));
+  ok('pack: missing liner is null, not empty junk', !!by('Pulse - Dominion Paint') && by('Pulse - Dominion Paint').manufacturer_code === null);
+  ok('2019 livery rescued by ParseSkin', !!by('Carrack Livery Upgrade'));
+  var ash = by('Sabre - Ashcloud Paint');
+  ok('kind "Paint" matched defensively', !!ash);
+  ok('warbond inherited from pledge', !!ash && ash.warbond === true && ash.lti === false);
+  ok('sibling <img> found and made absolute', !!ash && ash.image === 'https://robertsspaceindustries.com/media/sabre_ashcloud.jpg');
+  ok('sorted by title', JSON.stringify(skins.map(function (s) { return s.title; })) === JSON.stringify(skins.map(function (s) { return s.title; }).slice().sort()));
+
+  var fails = $('#tests .FAIL').length;
+  $('<h3>').text(fails === 0 ? 'ALL TESTS PASS' : fails + ' TEST(S) FAILED').prependTo(document.body);
+});
+</script>
+</body>
+</html>
