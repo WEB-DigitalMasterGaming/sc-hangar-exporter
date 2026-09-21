@@ -50,7 +50,12 @@
             if (!el) continue;
             const imgDiv = el.querySelector('.image');
             if (imgDiv) {
-              const bg = getComputedStyle(imgDiv).backgroundImage || '';
+              // Pages arrive via fetch + DOMParser: DETACHED documents,
+              // where getComputedStyle returns nothing. The inline style
+              // attribute is the source of truth there (and everywhere -
+              // RSI writes the thumbnail as an inline background).
+              let bg = imgDiv.style.backgroundImage || '';
+              if (!bg) { try { bg = getComputedStyle(imgDiv).backgroundImage || ''; } catch (e) {} }
               const m = bg.match(/url\(["']?([^"')]+)/);
               if (m) { image = m[1]; break; }
             }
