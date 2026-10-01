@@ -1,6 +1,7 @@
 // Hangar Connect page walker. Runs INSIDE robertsspaceindustries.com with
 // the user's own session. Same selectors the exporter fork verified against
-// the live hangar (527-row real export). Emits progress and one final
+// the live hangar (1,096-row real export: ships, paints and items). Emits
+// progress and one final
 // payload through flutter_inappwebview handlers.
 (async function () {
   const send = (name, arg) => window.flutter_inappwebview.callHandler(name, arg);
@@ -21,6 +22,29 @@
         if (t.textContent.indexOf('Lifetime Insurance') >= 0) { lti = true; break; }
       }
       const warbond = pledgeName.toLowerCase().indexOf('warbond') >= 0;
+
+      const grabImage = (item) => {
+        const scope = [item, item.parentElement];
+        for (const el of scope) {
+          if (!el) continue;
+          const imgDiv = el.querySelector('.image');
+          if (imgDiv) {
+            // Pages arrive via fetch + DOMParser: DETACHED documents,
+            // where getComputedStyle returns nothing. The inline style
+            // attribute is the source of truth there (and everywhere -
+            // RSI writes the thumbnail as an inline background).
+            let bg = imgDiv.style.backgroundImage || '';
+            if (!bg) { try { bg = getComputedStyle(imgDiv).backgroundImage || ''; } catch (e) {} }
+            const m = bg.match(/url\(["']?([^"')]+)/);
+            if (m) { return m[1]; }
+          }
+          const img = el.querySelector('img');
+          if (img && (img.src || img.dataset.src)) { return img.src || img.dataset.src; }
+        }
+        return null;
+      };
+      const absolutise = (image) =>
+        image && image.indexOf('/') === 0 ? 'https://robertsspaceindustries.com' + image : image;
 
       for (const kindEl of li.querySelectorAll('.kind')) {
         const kind = kindEl.textContent.trim();
@@ -44,31 +68,26 @@
           }, base));
         } else if (kind.indexOf('Skin') >= 0 || kind.indexOf('Paint') >= 0
                    || title.indexOf('Livery Upgrade') >= 0) {
-          let image = null;
-          const scope = [item, item.parentElement];
-          for (const el of scope) {
-            if (!el) continue;
-            const imgDiv = el.querySelector('.image');
-            if (imgDiv) {
-              // Pages arrive via fetch + DOMParser: DETACHED documents,
-              // where getComputedStyle returns nothing. The inline style
-              // attribute is the source of truth there (and everywhere -
-              // RSI writes the thumbnail as an inline background).
-              let bg = imgDiv.style.backgroundImage || '';
-              if (!bg) { try { bg = getComputedStyle(imgDiv).backgroundImage || ''; } catch (e) {} }
-              const m = bg.match(/url\(["']?([^"')]+)/);
-              if (m) { image = m[1]; break; }
-            }
-            const img = el.querySelector('img');
-            if (img && (img.src || img.dataset.src)) { image = img.src || img.dataset.src; break; }
-          }
-          if (image && image.indexOf('/') === 0) image = 'https://robertsspaceindustries.com' + image;
           out.push(Object.assign({
             entity_type: 'skin',
             title: title,
             manufacturer_code: linerSpan ? linerSpan.textContent.trim() : null,
             manufacturer_name: liner ? liner.textContent.replace(linerSpan ? linerSpan.textContent : '', '').trim() : null,
-            image: image,
+            image: absolutise(grabImage(item)),
+          }, base));
+        } else if (kind !== 'Insurance' && kind !== 'Credits') {
+          // Everything else in the hangar is an item. Known kinds get a
+          // stable entity_type; anything the store invents later flows
+          // through as 'item' with its label kept, instead of vanishing.
+          const kindKey = kind.toLowerCase();
+          const map = { 'fps equipment': 'equipment', 'component': 'component', 'hangar decoration': 'decoration' };
+          out.push(Object.assign({
+            entity_type: map[kindKey] || 'item',
+            kind_label: kind,
+            title: title,
+            manufacturer_code: linerSpan ? linerSpan.textContent.trim() : null,
+            manufacturer_name: liner ? liner.textContent.replace(linerSpan ? linerSpan.textContent : '', '').trim() : null,
+            image: absolutise(grabImage(item)),
           }, base));
         }
       }

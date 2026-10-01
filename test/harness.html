@@ -102,6 +102,38 @@
       <div class="liner"><span>AEGS</span> Aegis Dynamics</div>
     </div></div>
   </li>
+
+  <!-- 5: gear pack - items of several kinds, incl. ones we exclude or
+       have never seen (future CIG kinds must flow through, not vanish) -->
+  <li>
+    <input class="js-pledge-id" value="90000005">
+    <input class="js-pledge-name" value="Pirate Week Gear Pack - Warbond">
+    <input class="js-pledge-value" value="$45.00 USD">
+    <div class="date-col">Created: September 22, 2026</div>
+    <div class="item"><div class="wrap">
+      <img data-src="/media/pw_helmet.jpg">
+      <div class="title">DustUp Core Helmet - Pirate Edition</div>
+      <div class="kind">FPS Equipment</div>
+      <div class="liner"><span>CDS</span> Clark Defense Systems</div>
+    </div></div>
+    <div class="item"><div class="wrap">
+      <div class="title">QuadraCell MX Power Plant</div>
+      <div class="kind">Component</div>
+      <div class="liner"><span>AEGS</span> Aegis Dynamics</div>
+    </div></div>
+    <div class="item"><div class="wrap">
+      <div class="title">Crossed Swords '56 Coin</div>
+      <div class="kind">Hangar decoration</div>
+    </div></div>
+    <div class="item"><div class="wrap">
+      <div class="title">Pirate Trophy of Valor</div>
+      <div class="kind">Trophy</div>
+    </div></div>
+    <div class="item"><div class="wrap">
+      <div class="title">5,000 UEC</div>
+      <div class="kind">Credits</div>
+    </div></div>
+  </li>
 </ul>
 
 <div id="tests"></div>
@@ -120,6 +152,7 @@ $(function () {
   HangarXPLOR._inventory = $items;
 
   var skins = HangarXPLOR.GetSkinList($items);
+  var items = HangarXPLOR.GetItemList($items);
   document.getElementById('out').textContent = JSON.stringify(skins, null, 2);
 
   var $t = $('#tests');
@@ -144,6 +177,20 @@ $(function () {
   ok('warbond inherited from pledge', !!ash && ash.warbond === true && ash.lti === false);
   ok('sibling <img> found and made absolute', !!ash && ash.image === 'https://robertsspaceindustries.com/media/sabre_ashcloud.jpg');
   ok('sorted by title', JSON.stringify(skins.map(function (s) { return s.title; })) === JSON.stringify(skins.map(function (s) { return s.title; }).slice().sort()));
+
+
+  ok('items: exactly 4 exported (equipment, component, decoration, unknown)', items.length === 4);
+  function it(title) { return items.filter(function (i) { return i.title === title; })[0]; }
+  var helm = it("DustUp Core Helmet - Pirate Edition");
+  ok('items: FPS Equipment -> entity_type equipment', !!helm && helm.entity_type === 'equipment' && helm.kind_label === 'FPS Equipment');
+  ok('items: equipment image captured + absolutised', !!helm && helm.image === 'https://robertsspaceindustries.com/media/pw_helmet.jpg');
+  ok('items: warbond + pledge facts inherited', !!helm && helm.warbond === true && helm.pledge_id === '90000005' && helm.pledge_cost === '$45.00 USD');
+  ok('items: Component -> component with liner', !!it('QuadraCell MX Power Plant') && it('QuadraCell MX Power Plant').entity_type === 'component' && it('QuadraCell MX Power Plant').manufacturer_code === 'AEGS');
+  ok('items: Hangar decoration -> decoration, null manufacturer', !!it("Crossed Swords '56 Coin") && it("Crossed Swords '56 Coin").entity_type === 'decoration' && it("Crossed Swords '56 Coin").manufacturer_code === null);
+  ok('items: unknown kind flows through as item + kind_label', !!it('Pirate Trophy of Valor') && it('Pirate Trophy of Valor').entity_type === 'item' && it('Pirate Trophy of Valor').kind_label === 'Trophy');
+  ok('items: Insurance and Credits excluded', items.every(function (i) { return i.kind_label !== 'Insurance' && i.kind_label !== 'Credits'; }));
+  ok('items: no ship or skin leaked into items', items.every(function (i) { return i.entity_type !== 'ship' && i.entity_type !== 'skin'; }));
+  ok('skins: gear pack did not pollute the paint list', skins.length === 5);
 
   var fails = $('#tests .FAIL').length;
   $('<h3>').text(fails === 0 ? 'ALL TESTS PASS' : fails + ' TEST(S) FAILED').prependTo(document.body);

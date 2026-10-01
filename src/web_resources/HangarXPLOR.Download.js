@@ -130,6 +130,70 @@ HangarXPLOR._exportByName = HangarXPLOR._exportByName || {};
     }).sort(function(a, b) { return a.title < b.title ? -1 : a.title > b.title ? 1 : 0; }).get();
   }
 
+  // FORK (SC Ship Database): everything else in the hangar. The page labels
+  // every pledge item with a kind; ships and skins have dedicated extractors,
+  // and this one captures the rest. Known kinds get a stable entity_type;
+  // Insurance and Credits are deliberately excluded (not possessions to
+  // display); anything CIG invents later flows through as entity_type 'item'
+  // with its kind_label preserved instead of vanishing silently.
+  HangarXPLOR._itemKindMap = {
+    'fps equipment': 'equipment',
+    'component': 'component',
+    'hangar decoration': 'decoration',
+  };
+  HangarXPLOR._itemKindSkip = ['ship', 'skin', 'paint', 'insurance', 'credits'];
+
+  HangarXPLOR.GetItemList = function($target) {
+
+    return $target.map(function() {
+      var $pledge = this;
+      var pledge = {};
+      pledge.name = $('.js-pledge-name', $pledge).val() || '';
+      pledge.id = $('.js-pledge-id', $pledge).val();
+      pledge.cost = $('.js-pledge-value', $pledge).val();
+      pledge.lti = $('.title:contains(Lifetime Insurance)', $pledge).length > 0;
+      pledge.date = $('.date-col:first', $pledge).text().replace(/created:\s+/gi, '').trim();
+      pledge.warbond = pledge.name.toLowerCase().indexOf('warbond') > -1;
+
+      return $('.kind', this).map(function() {
+        var kindLabel = $(this).text().trim();
+        var kindKey = kindLabel.toLowerCase();
+        if (HangarXPLOR._itemKindSkip.indexOf(kindKey) > -1) { return null; }
+
+        var $item = $(this).parent();
+        // same image walker as GetSkinList: the thumbnail is not always
+        // inside the title/kind wrapper, and lazy-loaded pages keep the
+        // real url in a data attribute.
+        var $scope = $($item).add($($item).parent());
+        var image = ($scope.find('.image').css('background-image') || '')
+          .replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
+        if (!image || image === 'none') {
+          var $img = $scope.find('img').first();
+          image = $img.attr('src') || $img.attr('data-src') || $img.attr('data-lazy-src') || '';
+        }
+        if (image && image.indexOf('/') === 0) {
+          image = 'https://robertsspaceindustries.com' + image;
+        }
+
+        return {
+          entity_type: HangarXPLOR._itemKindMap[kindKey] || 'item',
+          kind_label: kindLabel,
+          title: $('.title', $item).text().trim(),
+          manufacturer_code: $('.liner span', $item).text().trim() || null,
+          manufacturer_name: ($('.liner', $item).clone().children().remove().end().text() || '')
+            .replace(/\(.*\)/, '').trim() || null,
+          image: image && image !== 'none' ? image : null,
+          lti: pledge.lti,
+          warbond: pledge.warbond,
+          pledge_id: pledge.id,
+          pledge_name: pledge.name,
+          pledge_date: pledge.date,
+          pledge_cost: pledge.cost,
+        };
+      }).get();
+    }).sort(function(a, b) { return a.title < b.title ? -1 : a.title > b.title ? 1 : 0; }).get();
+  }
+
   // One file with everything the hangar page knows: ships and paints in a
   // single array, each row naming its own entity_type. Apps that read only
   // ships skip the skins; apps that know paints get both in one import.
@@ -137,7 +201,7 @@ HangarXPLOR._exportByName = HangarXPLOR._exportByName || {};
     e.preventDefault();
 
     var $target = $(HangarXPLOR._selected.length > 0 ? HangarXPLOR._selected : HangarXPLOR._inventory);
-    var combined = HangarXPLOR.GetShipList($target).concat(HangarXPLOR.GetSkinList($target));
+    var combined = HangarXPLOR.GetShipList($target).concat(HangarXPLOR.GetSkinList($target)).concat(HangarXPLOR.GetItemList($target));
 
     $download.attr('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(combined, null, 2)));
     $download.attr('download', 'hangar.json');
