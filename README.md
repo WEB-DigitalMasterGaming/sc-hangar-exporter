@@ -1,6 +1,6 @@
 # SC Hangar Exporter
 
-Export your Star Citizen hangar — **ships AND paints** — to a single
+Export your Star Citizen hangar — **ships, paints AND items** — to a single
 `hangar.json` file, straight from your own account page on
 robertsspaceindustries.com.
 
@@ -12,17 +12,17 @@ the combined export and paint support. Thank you, upstream. ❤️
 
 ## What it adds over stock HangarXPLOR
 
-- **Download Hangar** — one `hangar.json` containing every ship *and* every
-  paint you own, each row labelled with its `entity_type`. Tools that only
-  understand ships can skip the paints; tools that know both get everything
-  from one file.
+- **Download Hangar** — one `hangar.json` containing every ship, paint
+  and hangar item you own (equipment, components, decorations), each row
+  labelled with its `entity_type`. Tools that only understand ships can
+  skip the rest; tools that know more get everything from one file.
 - **Paint images** — each paint carries its store image URL.
 - The stock **Download CSV** and ships-only **Download JSON** remain
   unchanged for the tools that already consume them.
 
 Built for (but not limited to) the
 **SC Ship Database** mobile app, which imports `hangar.json` directly —
-ships go through matching, paints appear with full-size images.
+ships go through matching, paints and items appear with full-size images.
 
 ## What this extension does and does not do
 
@@ -47,7 +47,7 @@ images — nothing else, and only on the hangar page, only when you tap.
 ## Install (until the store listing exists)
 
 1. Download this repository (Code → Download ZIP) and unzip it.
-2. Build: `npm install && node build.js 1.9.9.4`, or use a prebuilt zip
+2. Build: `npm install && node build.js 1.9.9.5`, or use a prebuilt zip
    from Releases.
 3. In Chrome: `chrome://extensions` → enable Developer mode →
    **Load unpacked** → select the built `dist/HangarXPLOR-chrome-v...`
