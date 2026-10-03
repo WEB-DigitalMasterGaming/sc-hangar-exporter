@@ -1,62 +1,58 @@
-# SC Hangar Exporter
+# SC Ship Database Hangar Exporter
 
-Export your Star Citizen hangar — **ships, paints AND items** — to a single
-`hangar.json` file, straight from your own account page on
+Export your Star Citizen hangar — **ships, paints and items** — to a
+single `hangar.json` file, straight from your own My Hangar page on
 robertsspaceindustries.com.
 
-This is a fork of the excellent
-**[HangarXPLOR](https://github.com/dolkensp/HangarXPLOR)** by Peter Dolkens
-(/u/alluran), which has served the Star Citizen community for years. All of
-the hangar-page parsing this tool is built on is his work — this fork adds
-the combined export and paint support. Thank you, upstream. ❤️
+Built for (but not limited to) the **SC Ship Database** mobile app, which
+imports `hangar.json` directly: ships go through matching, paints and
+items appear with full-size images. The app's own "Connect to RSI" import
+uses this very same reader, so the two stay in lockstep.
 
-## What it adds over stock HangarXPLOR
+## What it does — and everything it does not
 
-- **Download Hangar** — one `hangar.json` containing every ship, paint
-  and hangar item you own (equipment, components, decorations), each row
-  labelled with its `entity_type`. Tools that only understand ships can
-  skip the rest; tools that know more get everything from one file.
-- **Paint images** — each paint carries its store image URL.
-- The stock **Download CSV** and ships-only **Download JSON** remain
-  unchanged for the tools that already consume them.
-
-Built for (but not limited to) the
-**SC Ship Database** mobile app, which imports `hangar.json` directly —
-ships go through matching, paints and items appear with full-size images.
-
-## What this extension does and does not do
-
-- It runs **only on robertsspaceindustries.com**, in **your** browser, with
-  **your** existing login. It never sees or asks for your password.
-- It reads the pledge list your own hangar page already shows you, and
-  writes it to a **local file on your computer**. Nothing is uploaded,
-  transmitted, or stored anywhere else. There is no server.
+- It runs **only on your My Hangar page** (`/account/pledges`), in **your**
+  browser, with **your** existing login. It never sees or asks for your
+  password.
+- It reads the pledge list that page already shows you and saves it as a
+  **local file on your computer**. Nothing is uploaded, transmitted, or
+  stored anywhere else. There is no server, no analytics, no tracking.
+- It requests **no browser permissions** beyond running on that one page.
 - The code is short and readable — you are encouraged to read it. The
-  export logic lives in `src/web_resources/HangarXPLOR.Download.js`.
+  whole reader lives in `src/reader.js`.
 
-## `in-app-reader/`
+## Install
 
-The SC Ship Database app also offers "Connect to RSI" on the phone: an
-in-app browser where you sign in on RSI's own pages and the app reads your
-hangar the same way this extension does. The exact script the app injects
-is published here as
-[`in-app-reader/hangar_connect.js`](in-app-reader/hangar_connect.js) so
-anyone can verify what it reads: pledge names, ship names, paint names and
-images — nothing else, and only on the hangar page, only when you tap.
+- **Chrome Web Store:** (listing pending)
+- **Manual (load unpacked):** download this repository or a release zip,
+  unzip it, open `chrome://extensions`, enable Developer mode, choose
+  **Load unpacked**, and select the folder. Then open My Hangar on
+  robertsspaceindustries.com and click **Download Hangar**.
 
-## Install (until the store listing exists)
+## What the file contains
 
-1. Download this repository (Code → Download ZIP) and unzip it.
-2. Build: `npm install && node build.js 1.9.9.5`, or use a prebuilt zip
-   from Releases.
-3. In Chrome: `chrome://extensions` → enable Developer mode →
-   **Load unpacked** → select the built `dist/HangarXPLOR-chrome-v...`
-   folder.
-4. Open your Hangar on robertsspaceindustries.com and click
-   **Download Hangar**.
+One JSON array. Every row carries its pledge facts (`pledge_id`,
+`pledge_name`, `pledge_date`, `pledge_cost`, `lti`, `warbond`) and
+self-identifies via `entity_type`:
+
+| entity_type | what it is |
+|---|---|
+| `ship` | a ship, with `name` and manufacturer |
+| `skin` | a paint, with `title` and store image |
+| `equipment` / `component` / `decoration` | hangar items, with `title`, label and store image |
+| `item` | any item kind the store invents later — kept, with its `kind_label` |
+
+Insurance and store-credit rows are deliberately not exported.
+
+## Credits
+
+The idea of exporting straight from the hangar page was pioneered by
+[HangarXPLOR](https://github.com/dolkensp/HangarXPLOR). This project is an
+independent implementation, but the approach owes that lineage a nod.
 
 ## License
 
-MIT, same as upstream — see [LICENSE](LICENSE). Original work
-copyright Peter Dolkens; modifications copyright Digital Horizon Software
-(admin@digitalhorizonsoftware.com).
+MIT — see [LICENSE](LICENSE).
+
+Unofficial fan project. Not affiliated with Cloud Imperium Games.
+Star Citizen® is a trademark of Cloud Imperium Rights LLC.

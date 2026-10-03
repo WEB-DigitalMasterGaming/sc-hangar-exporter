@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "SC Ship Database Hangar Exporter",
+  "short_name": "SC Hangar Exporter",
+  "description": "Export your Star Citizen hangar - ships, paints and items - to one hangar.json from your own My Hangar page.",
+  "version": "1.0.0",
+  "icons": {
+    "16": "icons/icon_16.png",
+    "48": "icons/icon_48.png",
+    "128": "icons/icon_128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://robertsspaceindustries.com/account/pledges*",
+        "https://www.robertsspaceindustries.com/account/pledges*",
+        "https://robertsspaceindustries.com/*/account/pledges*",
+        "https://www.robertsspaceindustries.com/*/account/pledges*"
+      ],
+      "js": ["src/reader.js", "src/exporter.js"],
+      "css": ["src/exporter.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
